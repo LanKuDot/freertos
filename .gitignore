@@ -1,0 +1,7 @@
+*.o
+main.bin
+main.elf
+main.list
+mkromfs
+test-romfs.bin
+*.swp
