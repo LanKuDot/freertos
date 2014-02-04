@@ -1,0 +1,11 @@
+# GDB session setting
+file main.elf
+
+# Breakpoint Setting
+# Print a character to the screen
+# b 173
+# To get the value of strlen
+# b 100
+
+# Connect
+target remote :3333

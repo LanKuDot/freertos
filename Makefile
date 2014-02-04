@@ -100,7 +100,11 @@ qemudbg: main.bin $(QEMU_STM32)
 		-kernel main.bin
 		
 qemuauto: main.bin $(QEMU_STM32)
-	bash emulate.sh main.bin
+	$(QEMU_STM32) -M stm32-p103 \
+		-gdb tcp::3333 \
+		-kernel main.bin \
+		-monitor tcp:localhost:4444,server,nowait &
+	$(CROSS_COMPILE)gdb -x gdb.in
 
 clean:
 	rm -f *.o *.elf *.bin *.list mkromfs
