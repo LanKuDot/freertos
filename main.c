@@ -17,13 +17,14 @@ extern const char _sromfs;
 static void setup_hardware();
 
 volatile xSemaphoreHandle serial_tx_wait_sem = NULL;
-
+volatile xQueueHandle serial_rx_queue = NULL;
 
 /* IRQ handler to handle USART2 interruptss (both transmit and receive
  * interrupts). */
 void USART2_IRQHandler()
 {
 	static signed portBASE_TYPE xHigherPriorityTaskWoken;
+	char rx_msg;		// Recieve the char from RX
 
 	/* If this interrupt is for a transmit... */
 	if (USART_GetITStatus(USART2, USART_IT_TXE) != RESET) {
@@ -34,7 +35,23 @@ void USART2_IRQHandler()
 
 		/* Diables the transmit interrupt. */
 		USART_ITConfig(USART2, USART_IT_TXE, DISABLE);
-		/* If this interrupt is for a receive... */
+	}
+	/* If this interrupt is for a receive... */
+	else if ( USART_GetITStatus( USART2, USART_IT_RXNE ) != RESET )
+	{
+		/* Receive the char from rx */
+		rx_msg = USART_ReceiveData( USART2 );
+
+		/* Queue the received char */
+		if ( !xQueueSendToBackFromISR( serial_rx_queue, &rx_msg, \
+					&xHigherPriorityTaskWoken ) )
+		{
+			/*
+			 * If there was an error queueing the recieved char,
+			 * freeze.
+			 */
+			while(1);
+		}
 	}
 	else {
 		/* Only transmit and receive interrupts should be enabled.
@@ -63,21 +80,95 @@ void send_byte(char ch)
 	USART_ITConfig(USART2, USART_IT_TXE, ENABLE);
 }
 
-void read_romfs_task(void *pvParameters)
+char recieve_byte()
 {
-	char buf[128];
-	size_t count;
-	int fd = fs_open("/romfs/test.txt", 0, O_RDONLY);
-	do {
-		//Read from /romfs/test.txt to buffer
-		count = fio_read(fd, buf, sizeof(buf));
-		
-		//Write buffer to fd 1 (stdout, through uart)
-		fio_write(1, buf, count);
-	} while (count);
+	char msg;
+
+	/* Wait for a byte to be queued by the recieve interrupt handler. */
+	while( !xQueueReceive( serial_rx_queue, &msg, portMAX_DELAY ) );
 	
-	while (1);
+	return msg;
 }
+
+#define MAX_SERIAL_LEN	100
+/* Function Key ASCII code macro */
+#define ESC				27
+#define BACKSPACE		127
+void shellEnv()
+{
+	char serial_buf[ MAX_SERIAL_LEN ], ch;
+	char prompt[] = "LanKuDot@FreeRTOS~$ ", newLine[] = "\n\r";
+	int curr_pos, done;
+
+	/* Infinite loop for running shell environmrnt. */
+	while (1)
+	{
+		/* Show prompt each time waiting for user input. */
+		fio_write( 1, prompt, 20 );
+
+		/* Initialize the relatived variable. */
+		curr_pos = 0;
+		done = 0;
+
+		do
+		{
+			/* Recieve a byte from the RS232 port ( this call will
+			 * block ).
+			 */
+			ch = recieve_byte();
+
+			/* If the byte is an end-of-line character, than finish
+			 * the string and indicate we are done.
+			 */
+			if ( curr_pos >= MAX_SERIAL_LEN-1 || (ch == '\n') || (ch == '\r') )
+			{
+				serial_buf[ curr_pos ] = '\0';
+				done = -1;
+			}
+			/* Backspace key pressed */
+			else if ( ch == BACKSPACE )
+			{
+				/* The char is not at the begin of the line. */
+				if ( curr_pos != 0 )
+				{
+					--curr_pos;
+					/* Cover the last character with space, and shift the 
+					 * cursor left. */
+					fio_write( 1, "\b \b", 3 );
+				}
+			}
+			/* Function/Arrow Key pressed */
+			else if ( ch == ESC )
+			{
+				/* Arrow Key: ESC[A ~ ESC[D 
+				 * Function Key: ESC[1~ ~ ESC[6~ */
+				if ( ch == '[' )
+				{
+					ch = recieve_byte();
+					if ( ch >= '1' && ch <= '6' )
+					{
+						/* Discard '~' */
+						recieve_byte();
+					}
+
+					continue;
+				}
+			}
+			/* Otherwise, add the character to the response string */
+			else
+			{
+				serial_buf[ curr_pos++ ] = ch;
+				/* Display the char that just typed */
+				fio_write( 1, &ch, 1 );
+			}
+		} while ( !done );	// end character recieving loop
+
+		/* Direct to the new line */
+		fio_write( 1, newLine, 2 );
+
+
+	}	// end infinite while loop
+}	// end of function shellEnv
 
 int main()
 {
@@ -88,16 +179,15 @@ int main()
 	fs_init();
 	fio_init();
 	
-	register_romfs("romfs", &_sromfs);
-	
 	/* Create the queue used by the serial task.  Messages for write to
 	 * the RS232. */
+	serial_rx_queue = xQueueCreate( 1, sizeof(char) );
+
 	vSemaphoreCreateBinary(serial_tx_wait_sem);
 
-	/* Create a task to output text read from romfs. */
-	xTaskCreate(read_romfs_task,
-	            (signed portCHAR *) "Read romfs",
-	            512 /* stack size */, NULL, tskIDLE_PRIORITY + 2, NULL);
+	/* Create a task that run the sell environment. */
+	xTaskCreate( shellEnv, (signed portCHAR *)"Shell",
+			512, NULL, tskIDLE_PRIORITY + 5, NULL );
 
 	/* Start running the tasks. */
 	vTaskStartScheduler();

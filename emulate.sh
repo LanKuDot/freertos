@@ -8,7 +8,6 @@ emulate () {
 	$QEMU_STM32 \
 		-M stm32-p103 \
 		-kernel $1 \
-		-serial stdio \
 		-parallel none \
 		-monitor tcp:localhost:4444,server,nowait <&0 & pid=$!
 }
