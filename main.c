@@ -12,6 +12,9 @@
 #include "filesystem.h"
 #include "fio.h"
 
+/* String includes */
+#include "string-util.h"
+
 extern const char _sromfs;
 
 static void setup_hardware();
@@ -104,7 +107,7 @@ void shellEnv()
 	while (1)
 	{
 		/* Show prompt each time waiting for user input. */
-		fio_write( 1, prompt, 20 );
+		fio_write( 1, prompt, strlen( prompt ) );
 
 		/* Initialize the relatived variable. */
 		curr_pos = 0;
@@ -164,7 +167,7 @@ void shellEnv()
 		} while ( !done );	// end character recieving loop
 
 		/* Direct to the new line */
-		fio_write( 1, newLine, 2 );
+		fio_write( 1, newLine, strlen( newLine ) );
 
 
 	}	// end infinite while loop

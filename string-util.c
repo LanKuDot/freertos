@@ -1,6 +1,9 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <limits.h>
+#include <stdlib.h>
+#include <string.h>
+#include "string-util.h"
 
 #define ALIGN (sizeof(size_t))
 #define ONES ((size_t)-1/UCHAR_MAX)                                                                      
@@ -66,4 +69,20 @@ char *strncpy(char *dest, const char *src, size_t n)
 	unsigned char *d = dest;
 	while (n-- && (*d++ = *s++));
 	return dest;
+}
+
+size_t strlen( const char *str )
+{
+	const char *a = str;
+	const size_t *w;
+
+	for ( ; (uintptr_t) str % ALIGN; str++ )
+		if ( !*str ) return ( str - a );
+
+	for ( w = (const void *)str; !HASZERO(*w); w++ )
+		;
+	for ( str = (const void *)w; *str; str++ )
+		;
+
+	return ( str - a );
 }
