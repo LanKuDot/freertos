@@ -93,6 +93,13 @@ char recieve_byte()
 	return msg;
 }
 
+void print_to_console( const char *str )
+{
+	/* Send the string to the console.
+	 * fd = 1 for stdout. */
+	fio_write( 1, str, strlen( str ) );
+}
+
 #define MAX_SERIAL_LEN	100
 /* Function Key ASCII code macro */
 #define ESC				27
@@ -107,7 +114,7 @@ void shellEnv()
 	while (1)
 	{
 		/* Show prompt each time waiting for user input. */
-		fio_write( 1, prompt, strlen( prompt ) );
+		print_to_console( prompt );
 
 		/* Initialize the relatived variable. */
 		curr_pos = 0;
@@ -137,7 +144,7 @@ void shellEnv()
 					--curr_pos;
 					/* Cover the last character with space, and shift the 
 					 * cursor left. */
-					fio_write( 1, "\b \b", 3 );
+					print_to_console( "\b \b" );
 				}
 			}
 			/* Function/Arrow Key pressed */
@@ -162,12 +169,13 @@ void shellEnv()
 			{
 				serial_buf[ curr_pos++ ] = ch;
 				/* Display the char that just typed */
+			//	print_to_console( &ch );		// Bug: Press 1, print a lot...
 				fio_write( 1, &ch, 1 );
 			}
 		} while ( !done );	// end character recieving loop
 
 		/* Direct to the new line */
-		fio_write( 1, newLine, strlen( newLine ) );
+		print_to_console( newLine );
 
 
 	}	// end infinite while loop
