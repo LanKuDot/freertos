@@ -152,6 +152,8 @@ void shellEnv()
 			{
 				/* Arrow Key: ESC[A ~ ESC[D 
 				 * Function Key: ESC[1~ ~ ESC[6~ */
+				ch = recieve_byte();
+
 				if ( ch == '[' )
 				{
 					ch = recieve_byte();
@@ -176,7 +178,6 @@ void shellEnv()
 
 		/* Direct to the new line */
 		print_to_console( newLine );
-
 
 	}	// end infinite while loop
 }	// end of function shellEnv
