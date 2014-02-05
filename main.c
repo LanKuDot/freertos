@@ -107,11 +107,27 @@ void sPuts( const char *str )
 	print_to_console( "\r\n" );
 }
 
+/*
+ * Show all tasks and their states that are
+ * running on the OS. */
+void cmd_ps()
+{
+	char listBuf[512] = {0};
+
+	vTaskList( listBuf );
+	print_to_console( listBuf );
+}
+
 /* Parse the command and return the command ID */
 int getCommand( const char *cmd )
 {
+	/* Print out the welcome message. */
 	if ( strncmp( cmd, "Hello", 5 ) == 0 )
 		sPuts( "Hi, Welcome to FreeRTOS!" );
+	/* Show all the task that are on the OS. */
+	else if ( strncmp( cmd, "ps", 2 ) == 0 )
+		cmd_ps();
+	/* Command not found, show the message. */
 	else
 		sPuts( "Command Not found!" );
 }
