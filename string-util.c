@@ -86,3 +86,16 @@ size_t strlen( const char *str )
 
 	return ( str - a );
 }
+
+int strncmp( const char *str1, const char *str2, size_t n )
+{
+	char *str1_alias = str1, *str2_alias = str2;
+
+	for ( ; n > 0; ++str1_alias, ++str2_alias, --n  )
+	{
+		if ( *str1_alias != *str2_alias )
+			return *str1_alias - *str2_alias;
+	}
+
+	return 0;
+}

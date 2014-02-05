@@ -100,6 +100,22 @@ void print_to_console( const char *str )
 	fio_write( 1, str, strlen( str ) );
 }
 
+void sPuts( const char *str )
+{
+	/* Display the string with new line. */
+	print_to_console( str );
+	print_to_console( "\r\n" );
+}
+
+/* Parse the command and return the command ID */
+int getCommand( const char *cmd )
+{
+	if ( strncmp( cmd, "Hello", 5 ) == 0 )
+		sPuts( "Hi, Welcome to FreeRTOS!" );
+	else
+		sPuts( "Command Not found!" );
+}
+
 #define MAX_SERIAL_LEN	100
 /* Function Key ASCII code macro */
 #define ESC				27
@@ -178,6 +194,9 @@ void shellEnv()
 
 		/* Direct to the new line */
 		print_to_console( newLine );
+
+		/* Deal with the command! */
+		getCommand( serial_buf );
 
 	}	// end infinite while loop
 }	// end of function shellEnv
