@@ -10,5 +10,8 @@ char *strcpy( char *dest, const char *src );
 char *strncpy( char *dest, const char *src, size_t n );
 size_t strlen( const char *str );
 int strncmp( const char *str1, const char *str2, size_t n );
+char *strcat( char *dest, const char *src );
+int sprintf( char *str, const char *format, ... );
+char *itoa( int value, char *str, int base );
 
 #endif /*STRING_UTIL*/

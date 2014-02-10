@@ -3,6 +3,7 @@
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include "string-util.h"
 
 #define ALIGN (sizeof(size_t))
@@ -89,13 +90,121 @@ size_t strlen( const char *str )
 
 int strncmp( const char *str1, const char *str2, size_t n )
 {
-	char *str1_alias = str1, *str2_alias = str2;
+	const char *s1 = str1, *s2 = str2;
 
-	for ( ; n > 0; ++str1_alias, ++str2_alias, --n  )
+	for ( ; n > 0; ++s1, ++s2, --n  )
 	{
-		if ( *str1_alias != *str2_alias )
-			return *str1_alias - *str2_alias;
+		if ( *s1 != *s2 )
+			return *s1 - *s2;
 	}
 
 	return 0;
+}
+
+char *strcat( char *dest, const char *src )
+{
+	char *d = dest;
+	const char *s = src;
+	strcpy( &d[ strlen(d) ], s );
+	return dest;
+}
+
+/* Write formatted data to string */
+int sprintf( char *str, const char *format, ... )
+{
+	va_list ap;
+	char *s = str, *ap_str, itoa_buf[32] = {0}, *ITOA = itoa_buf;
+	const char *f = format;
+
+	va_start( ap, format );
+
+	/* Parse the formatted string. */
+	while ( *f != '\0' )
+	{
+		/* Normal text. */
+		if ( *f != '%' )
+			*s++ = *f++;
+		/* Get formatted Indicator and discard %. */
+		else
+		{
+			switch( *++f )
+			{
+				case 's':	/* String */
+					ap_str = va_arg( ap, char * );
+
+					while( *ap_str != '\0' )
+						*s++ = *ap_str++;
+
+					break;
+				case 'c':	/* Character */
+					*s++ = ( char )va_arg( ap, int );
+					break;
+				case 'u':	/* Unsigned decimal integer */
+					itoa( va_arg( ap, unsigned ), itoa_buf, 10 );
+					ITOA = itoa_buf;
+
+					while( *ITOA != '\0' )
+						*s++ = *ITOA++;
+
+					break;
+				default:
+					break;
+			}	// end of switch ( *++f )
+
+			++f;
+		}	// end of else ( *f == '%' )
+	}	// end of while( *f )
+
+	va_end( ap );
+	return strlen( str );
+}
+
+char *itoa( int value, char *str, int base )
+{
+	static char buf[32] = {0};
+	int i = 30, sign = 0;
+
+	/* Deal with 0 */
+	if ( value == 0 )
+	{
+		buf[0] = '0';
+		buf[1] = '\0';
+		strcpy( str, buf );
+		return;
+	}
+
+	/* Negative number */
+	if ( value < 0 )
+	{
+		sign = 1;
+		value = value * -1;
+	}
+
+	/* Converting int to string */
+	switch( base )
+	{
+		case 10:	/* Decimal */
+			for ( ; value && i; --i, value /= 10 )
+				buf[i] = "0123456789"[ value % 10 ];
+			break;
+		case 16:	/* Hexdecimal */
+			for ( ; value && i; --i, value /= 16 )
+				buf[i] = "0123456789ABCDEF"[ value % 16 ];
+			break;
+		case 8:		/* Optical */
+			for( ; value && i; --i, value /= 8 )
+				buf[i] = "01234567"[ value % 8 ];
+			break;
+	}
+
+	/* Append the minus if needs. */
+	if ( sign == 1 )
+	{
+		buf[i] = '-';
+		--i;
+	}
+
+	strcpy( str, &buf[i+1] );
+
+	return str;
 }

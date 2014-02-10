@@ -113,7 +113,7 @@ void sPuts( const char *str )
 void cmd_ps()
 {
 	char listBuf[512] = {0};
-
+	sPuts( "Name\t      State Priority   Stack   Num" );
 	vTaskList( listBuf );
 	print_to_console( listBuf );
 }
