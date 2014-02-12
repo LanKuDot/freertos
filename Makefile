@@ -52,6 +52,7 @@ main.bin: test-romfs.o main.c
 		\
 		osdebug.c \
 		string-util.c \
+		semi_host.c \
 		\
 		main.c
 	$(CROSS_COMPILE)ld -Tmain.ld -nostartfiles -o main.elf \
@@ -73,6 +74,7 @@ main.bin: test-romfs.o main.c
 		\
 		osdebug.o \
 		string-util.o \
+		semi_host.o \
 		\
 		main.o
 	$(CROSS_COMPILE)objcopy -Obinary main.elf main.bin
@@ -92,18 +94,20 @@ test-romfs.o: mkromfs
 
 
 qemu: main.bin $(QEMU_STM32)
-	$(QEMU_STM32) -M stm32-p103 -kernel main.bin
+	$(QEMU_STM32) -M stm32-p103 -kernel main.bin -semihosting
 
 qemudbg: main.bin $(QEMU_STM32)
 	$(QEMU_STM32) -M stm32-p103 \
 		-gdb tcp::3333 -S \
-		-kernel main.bin
+		-kernel main.bin \
+		-semihosting
 		
 qemuauto: main.bin $(QEMU_STM32)
 	$(QEMU_STM32) -M stm32-p103 \
 		-gdb tcp::3333 \
 		-kernel main.bin \
-		-monitor tcp:localhost:4444,server,nowait &
+		-monitor tcp:localhost:4444,server,nowait \
+		-semihosting &
 	$(CROSS_COMPILE)gdb -x gdb.in
 
 clean:

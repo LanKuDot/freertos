@@ -15,6 +15,8 @@
 /* String includes */
 #include "string-util.h"
 
+#include "semi_host.h"
+
 extern const char _sromfs;
 
 static void setup_hardware();
@@ -118,15 +120,56 @@ void cmd_ps()
 	print_to_console( listBuf );
 }
 
+/*
+ * The command would be passed to the host.
+ */
+void cmd_host( const char *cmd )
+{
+	/* The command format is :"host <command>" */
+	const char *host_cmd = &cmd[5];
+
+	semihost_system( host_cmd, strlen( host_cmd ) );
+}
+
+/* Display the content of the file specified. */
+void cmd_cat( const char *filename )
+{
+	char buffer[129];
+	int fd = fs_open( filename, 0, O_RDONLY ), count;
+
+	if ( fd < 0 )
+	{
+		sPuts( "The file dose not exist!" );
+		return;
+	}
+
+	while( ( count = fio_read( fd, buffer, sizeof(buffer) - 1 ) ) > 0 )
+	{
+		buffer[ count ] = '\0';
+		print_to_console( buffer );
+	}
+
+	sPuts( "" );
+	fio_close( fd );
+
+	return;
+}
+
 /* Parse the command and return the command ID */
 int getCommand( const char *cmd )
 {
-	/* Print out the welcome message. */
+	/* Hello: Print out the welcome message. */
 	if ( strncmp( cmd, "Hello", 5 ) == 0 )
 		sPuts( "Hi, Welcome to FreeRTOS!" );
-	/* Show all the task that are on the OS. */
+	/* ps: Show all the task that are on the OS. */
 	else if ( strncmp( cmd, "ps", 2 ) == 0 )
 		cmd_ps();
+	/* host <command>: The command passed to the host. */
+	else if ( strncmp( cmd, "host", 4 ) == 0 )
+		cmd_host( cmd );
+	/* cat <path/filename>: Display the content of the file. */
+	else if ( strncmp( cmd, "cat", 3 ) == 0 )
+		cmd_cat( &cmd[4] );
 	/* Command not found, show the message. */
 	else
 		sPuts( "Command Not found!" );
